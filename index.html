@@ -3,118 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>المصحف الإلكتروني - كامل السور</title>
-    <script src="https://unpkg.com/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+    <title>المصحف الإلكتروني الفاخر</title>
     <style>
-        :root { --bg: #121212; --nav: #1f1f1f; --gold: #c4a484; --paper: #f4ece0; }
-        body { background: var(--bg); margin: 0; display: flex; flex-direction: column; min-height: 100vh; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-
-        .navbar {
-            width: 100%; background: var(--nav); height: auto; min-height: 60px; display: flex;
-            flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 10px 15px;
-            box-sizing: border-box; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 1000;
+        :root {
+            --gold: #d4af37;
+            --dark-gold: #aa8c2c;
+            --bg-color: #121212;
         }
 
-        .info-box { display: flex; flex-direction: column; flex: 1; min-width: 120px; }
-        .surah-label { color: var(--gold); font-size: 16px; font-weight: bold; }
-        .page-label { color: #888; font-size: 12px; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg-color); overflow: hidden; font-family: 'Segoe UI', sans-serif; }
 
-        .controls-nav { display: flex; gap: 8px; align-items: center; margin: 5px 0; }
-        .btn-nav { background: #2c2c2c; color: white; border: 1px solid var(--gold); padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px; }
-        
-        #surah-select { background: #2c2c2c; color: white; border: 1px solid var(--gold); padding: 5px; border-radius: 5px; width: 100%; max-width: 150px; }
+        /* الهيدر المحسن */
+        .header {
+            height: 90px;
+            background: linear-gradient(to bottom, #2c2c2c, #1a1a1a);
+            border-bottom: 2px solid var(--gold);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 1000; position: relative;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.8);
+        }
 
-        .viewport { flex: 1; display: flex; justify-content: center; align-items: center; padding: 10px; overflow: hidden; position: relative; }
-        
-        /* تحويل الحاوية لتناسب الجوال */
-        #book-container { width: 100%; height: 100%; max-width: 900px; display: flex; justify-content: center; align-items: center; }
-        #quran-book { box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        
-        .page { background: var(--paper); width: 100%; height: 100%; }
-        .page img { width: 100%; height: 100%; object-fit: fill; }
+        .surah-name { color: var(--gold); font-size: 24px; font-weight: bold; text-shadow: 2px 2px 4px #000; }
+        .page-info { color: #ccc; font-size: 14px; margin-top: 5px; }
 
-        @media (max-width: 600px) {
-            .navbar { justify-content: center; gap: 10px; }
-            .info-box { text-align: center; order: 1; width: 100%; }
-            .controls-nav { order: 3; width: 100%; justify-content: center; }
-            #surah-select { order: 2; max-width: 80%; }
+        /* شريط الأدوات */
+        .toolbar {
+            height: 55px; background: #1f1f1f; display: flex; justify-content: center; gap: 15px; align-items: center;
+            border-bottom: 1px solid #333; z-index: 900; position: relative;
+        }
+
+        select, input {
+            background: #2a2a2a; color: var(--gold); border: 1px solid var(--dark-gold);
+            border-radius: 8px; padding: 6px 12px; font-size: 14px; outline: none;
+        }
+
+        /* حاوية العرض */
+        .mushaf-viewport {
+            height: calc(100vh - 145px);
+            width: 100vw;
+            display: flex; justify-content: center; align-items: center;
+            background: #000; position: relative;
+            overflow: hidden;
+        }
+
+        #quran-image {
+            max-width: 100%; max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.2s ease;
+            z-index: 10; /* خلف منطقة النقر */
+        }
+
+        /* مناطق النقر (شفافة لكنها فوق الصورة) */
+        .nav-area {
+            position: absolute; top: 0; height: 100%; width: 45%;
+            z-index: 2000; /* أعلى شيء لضمان وصول اللمس */
+            cursor: pointer;
+            display: flex; align-items: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .right-nav { right: 0; justify-content: flex-end; }
+        .left-nav { left: 0; justify-content: flex-start; }
+
+        /* أسهم خفيفة تظهر عند التحويم أو اللمس */
+        .nav-arrow {
+            color: rgba(212, 175, 55, 0.4); font-size: 40px; padding: 20px;
+            pointer-events: none; /* السهم لا يعيق النقر */
         }
     </style>
 </head>
 <body>
 
-<div class="navbar">
-    <div class="info-box">
-        <div class="surah-label" id="cur-surah">سورة الفاتحة</div>
-        <div class="page-label">صفحة: <span id="cur-page">1</span></div>
+    <div class="header">
+        <div class="surah-name" id="display-surah">سورة الفاتحة</div>
+        <div class="page-info" id="display-page">صفحة ١</div>
     </div>
 
-    <select id="surah-select" onchange="goToPage(this.value)">
-        <option value="">اختر السورة..</option>
-    </select>
-
-    <div class="controls-nav">
-        <button class="btn-nav" onclick="pageFlip.flipNext()">التالي</button>
-        <button class="btn-nav" onclick="pageFlip.flipPrev()">السابق</button>
+    <div class="toolbar">
+        <select id="surah-index" onchange="jumpToPage(this.value)">
+            <option value="1">الفهرس..</option>
+        </select>
+        <input type="number" id="page-search" placeholder="رقم ص.." style="width: 70px;" onchange="jumpToPage(this.value)">
     </div>
-</div>
 
-<div class="viewport">
-    <div id="book-container">
-        <div id="quran-book"></div>
+    <div class="mushaf-viewport">
+        <div class="nav-area right-nav" onclick="changePage(1)">
+            <span class="nav-arrow">❮</span>
+        </div>
+
+        <img id="quran-image" src="001.jpg" alt="جاري التحميل...">
+
+        <div class="nav-area left-nav" onclick="changePage(-1)">
+            <span class="nav-arrow">❯</span>
+        </div>
     </div>
-</div>
 
 <script>
-    let pageFlip;
-    // قائمة السور كاملة 114 سورة مع بدايات الصفحات (مصحف المدينة)
+    let currentPage = 1;
+    // قائمة السور الأساسية
     const surahs = [
-        {name:"الفاتحة", p:1}, {name:"البقرة", p:2}, {name:"آل عمران", p:50}, {name:"النساء", p:77}, {name:"المائدة", p:106}, {name:"الأنعام", p:128}, {name:"الأعراف", p:151}, {name:"الأنفال", p:177}, {name:"التوبة", p:187}, {name:"يونس", p:208}, {name:"هود", p:221}, {name:"يوسف", p:235}, {name:"الرعد", p:249}, {name:"إبراهيم", p:255}, {name:"الحجر", p:262}, {name:"النحل", p:267}, {name:"الإسراء", p:282}, {name:"الكهف", p:293}, {name:"مريم", p:305}, {name:"طه", p:312}, {name:"الأنبياء", p:322}, {name:"الحج", p:332}, {name:"المؤمنون", p:342}, {name:"النور", p:350}, {name:"الفرقان", p:359}, {name:"الشعراء", p:367}, {name:"النمل", p:377}, {name:"القصص", p:385}, {name:"العنكبوت", p:396}, {name:"الروم", p:404}, {name:"لقمان", p:411}, {name:"السجدة", p:415}, {name:"الأحزاب", p:418}, {name:"سبأ", p:428}, {name:"فاطر", p:434}, {name:"يس", p:440}, {name:"الصافات", p:446}, {name:"ص", p:453}, {name:"الزمر", p:458}, {name:"غافر", p:467}, {name:"فصلت", p:477}, {name:"الشورى", p:483}, {name:"الزخرف", p:489}, {name:"الدخان", p:496}, {name:"الجاثية", p:499}, {name:"الأحقاف", p:502}, {name:"محمد", p:507}, {name:"الفتح", p:511}, {name:"الحجرات", p:515}, {name:"ق", p:518}, {name:"الذاريات", p:520}, {name:"الطور", p:523}, {name:"النجم", p:526}, {name:"القمر", p:528}, {name:"الرحمن", p:531}, {name:"الواقعة", p:534}, {name:"الحديد", p:537}, {name:"المجادلة", p:542}, {name:"الحشر", p:545}, {name:"الممتحنة", p:549}, {name:"الصف", p:551}, {name:"الجمعة", p:553}, {name:"المنافقون", p:554}, {name:"التغابن", p:556}, {name:"الطلاق", p:558}, {name:"التحريم", p:560}, {name:"الملك", p:562}, {name:"القلم", p:564}, {name:"الحاقة", p:566}, {name:"المعارج", p:568}, {name:"نوح", p:570}, {name:"الجن", p:572}, {name:"المزمل", p:574}, {name:"المدثر", p:575}, {name:"القيامة", p:577}, {name:"الإنسان", p:578}, {name:"المرسلات", p:580}, {name:"النبأ", p:582}, {name:"النازعات", p:583}, {name:"عبس", p:585}, {name:"التكوير", p:586}, {name:"الانفطار", p:587}, {name:"المطففين", p:587}, {name:"الانشقاق", p:589}, {name:"البروج", p:590}, {name:"الطارق", p:591}, {name:"الأعلى", p:591}, {name:"الغاشية", p:592}, {name:"الفجر", p:593}, {name:"البلد", p:594}, {name:"الشمس", p:595}, {name:"الليل", p:595}, {name:"الضحى", p:596}, {name:"الشرح", p:596}, {name:"التين", p:597}, {name:"العلق", p:597}, {name:"القدر", p:598}, {name:"البينة", p:598}, {name:"الزلزلة", p:599}, {name:"العاديات", p:599}, {name:"القارعة", p:600}, {name:"التكاثر", p:600}, {name:"العصر", p:601}, {name:"الهمزة", p:601}, {name:"الفيل", p:601}, {name:"قريش", p:602}, {name:"الماعون", p:602}, {name:"الكوثر", p:602}, {name:"الكافرون", p:603}, {name:"النصر", p:603}, {name:"المسد", p:603}, {name:"الإخلاص", p:604}, {name:"الفلق", p:604}, {name:"الناس", p:604}
+        {n:"الفاتحة", p:1}, {n:"البقرة", p:2}, {n:"آل عمران", p:50}, {n:"النساء", p:77},
+        {n:"المائدة", p:106}, {n:"الأنعام", p:128}, {n:"الأعراف", p:151}, {n:"الأنفال", p:177},
+        {n:"التوبة", p:187}, {n:"يونس", p:208}, {n:"هود", p:221}, {n:"يوسف", p:235}
     ];
 
-    window.onload = function() {
-        const book = document.getElementById('quran-book');
-        const select = document.getElementById('surah-select');
-        
-        surahs.forEach(s => { select.add(new Option(s.name, s.p)); });
+    function init() {
+        const select = document.getElementById('surah-index');
+        surahs.forEach(s => {
+            select.add(new Option(s.n, s.p));
+        });
+        updateDisplay();
+    }
 
-        for (let i = 1; i <= 604; i++) {
-            const page = document.createElement('div');
-            page.className = 'page';
-            const img = document.createElement('img');
-            const pNum = i.toString().padStart(3, '0');
-            img.src = "https://raw.githubusercontent.com/search5/quran-images/master/" + pNum + ".jpg";
-            page.appendChild(img);
-            book.appendChild(page);
+    function changePage(step) {
+        // في نظام RTL: النقر يميناً يعني زيادة الصفحة
+        currentPage += step;
+        if (currentPage < 1) currentPage = 1;
+        if (currentPage > 604) currentPage = 604;
+        updateDisplay();
+    }
+
+    function jumpToPage(val) {
+        let p = parseInt(val);
+        if (p >= 1 && p <= 604) {
+            currentPage = p;
+            updateDisplay();
         }
+    }
 
-        // إعدادات محسنة للجوال
-        pageFlip = new St.PageFlip(book, {
-            width: 450, 
-            height: 650,
-            size: "stretch",
-            minWidth: 250,
-            maxWidth: 1000,
-            minHeight: 400,
-            maxHeight: 1500,
-            showCover: false,
-            usePortrait: true, // تفعيل الوضع الطولي للجوال
-            drawShadow: true,
-            flippingTime: 1000,
-            mobileScrollSupport: true // دعم اللمس في الجوال
-        });
+    function updateDisplay() {
+        const img = document.getElementById('quran-image');
+        const pNum = currentPage.toString().padStart(3, '0');
+        
+        // تغيير الصورة (مع محاولة الرابط الخارجي إذا فشل المحلي)
+        img.src = pNum + ".jpg";
+        img.onerror = function() { 
+            this.src = "https://raw.githubusercontent.com/search5/quran-images/master/" + pNum + ".jpg"; 
+        };
 
-        pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+        // تحديث النصوص
+        let currentS = surahs.filter(s => s.p <= currentPage).pop();
+        document.getElementById('display-surah').innerText = "سورة " + (currentS ? currentS.n : "...");
+        document.getElementById('display-page').innerText = "صفحة " + currentPage;
+        document.getElementById('page-search').value = currentPage;
+    }
 
-        pageFlip.on('flip', (e) => {
-            const p = e.data + 1;
-            document.getElementById('cur-page').innerText = p;
-            let currentS = surahs.filter(s => s.p <= p).pop();
-            if(currentS) document.getElementById('cur-surah').innerText = "سورة " + currentS.name;
-        });
-    };
-
-    function goToPage(p) { if(p) pageFlip.turnToPage(parseInt(p) - 1); }
+    window.onload = init;
 </script>
 </body>
 </html>
