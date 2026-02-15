@@ -2,183 +2,188 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المصحف الشريف - الثيم الأبيض</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>مصحف التلاوة - السحب الذكي</title>
     <style>
-        :root { --gold: #b08d57; --bg: #ffffff; --text: #333; }
+        :root { --gold: #b08d57; --dark-bg: #1a1a1a; --input-bg: #ffffff; }
         
         body { 
-            background: var(--bg); 
+            background: #ffffff; 
             margin: 0; 
             display: flex; 
             flex-direction: column; 
             height: 100vh; 
-            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            font-family: 'Segoe UI', sans-serif; 
             overflow: hidden; 
-            color: var(--text); 
         }
 
-        /* الهيدر العلوي الأبيض */
+        /* هيدر باللون الأسود الفخم */
         header { 
-            background: #fdfdfd; 
+            background: var(--dark-bg); 
             padding: 10px 15px; 
             display: flex; 
-            flex-wrap: wrap; 
-            gap: 12px; 
+            justify-content: space-between; 
             align-items: center; 
-            border-bottom: 1px solid #eee; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-            z-index: 10; 
+            border-bottom: 2px solid var(--gold);
+            z-index: 100;
         }
         
-        .info-box { flex: 1; min-width: 140px; }
-        #sName { color: var(--gold); font-size: 1.2rem; display: block; font-weight: bold; }
-        small { color: #888; }
+        .header-right { display: flex; flex-direction: column; color: var(--gold); }
+        .header-right b { font-size: 1.1rem; }
+        .header-right span { font-size: 0.8rem; color: #aaa; }
 
-        .tools { display: flex; gap: 8px; align-items: center; }
+        .search-tools { display: flex; gap: 10px; }
         
-        .input-style { 
-            background: #fff; 
-            border: 1px solid #ddd; 
-            color: #333; 
+        /* خانات السور والبحث باللون الأبيض */
+        .q-input { 
+            background: var(--input-bg); 
+            border: 1px solid var(--gold); 
             padding: 8px; 
             border-radius: 5px; 
-            outline: none; 
             font-size: 14px; 
+            color: #000;
+            outline: none;
         }
-        .input-style:focus { border-color: var(--gold); }
 
-        /* منطقة عرض الصفحة (خلفية بيضاء بالكامل) */
-        .main-viewer { 
+        /* منطقة العرض - مرفوعة للأعلى */
+        .view-area { 
             flex: 1; 
             display: flex; 
             justify-content: center; 
-            align-items: center; 
-            padding: 5px; 
-            background: #ffffff; 
+            align-items: flex-start; 
+            padding-top: 5px;
+            background: #ffffff;
+            touch-action: none; /* لمنع تداخل سحب المتصفح مع سحب الصفحة */
         }
         
-        .quran-frame {
-            width: 100%; 
-            max-width: 550px; 
-            height: 90vh;
+        .book-page {
+            width: 95%; 
+            max-width: 500px; 
+            height: 85vh;
             background: #fff; 
-            border: 1px solid #eee; /* إطار خفيف جداً */
             position: relative; 
-            overflow: hidden;
             display: flex; 
             justify-content: center; 
             align-items: center;
-            transition: all 0.3s ease;
+            cursor: grab;
+            user-select: none;
         }
 
         #qImg { 
             max-width: 100%; 
             max-height: 100%; 
-            object-fit: contain; 
-            display: block;
+            object-fit: contain;
+            pointer-events: none; /* لجعل السحب يعمل على الحاوية */
         }
 
-        /* أزرار التنقل (تصميم فاتح) */
-        .nav-footer { 
-            background: #fdfdfd; 
-            padding: 15px; 
-            display: flex; 
-            gap: 20px; 
-            justify-content: center; 
-            border-top: 1px solid #eee; 
+        /* تأثير الثنية الورقية عند الزاوية */
+        .page-curl {
+            position: absolute;
+            top: 0; right: 0;
+            width: 40px; height: 40px;
+            background: linear-gradient(225deg, #ffffff 45%, #ddd 50%, #ccc 56%, #f3f3f3 80%);
+            box-shadow: -2px 2px 5px rgba(0,0,0,0.1);
+            border-bottom-left-radius: 5px;
+            z-index: 10;
         }
-        
-        .nav-btn { 
-            background: var(--gold); 
-            color: white; 
-            border: none; 
-            padding: 10px 40px; 
-            border-radius: 25px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.3s; 
-            font-size: 16px; 
-            box-shadow: 0 4px 10px rgba(176, 141, 87, 0.2);
-        }
-        
-        .nav-btn:hover { background: #96784a; }
-        .nav-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="info-box">
+    <div class="header-right">
         <b id="sName">سورة الفاتحة</b>
-        <small>صفحة: <span id="pNum">1</span></small>
+        <span>صفحة: <span id="pNum">1</span></span>
     </div>
     
-    <div class="tools">
-        <input type="number" id="pageSearch" class="input-style" placeholder="رقم.." style="width: 60px;" oninput="jumpToPage(this.value)">
-        <select id="surahSelect" class="input-style" onchange="jumpToPage(this.value)">
+    <div class="search-tools">
+        <input type="number" id="pSearch" class="q-input" placeholder="رقم.." style="width: 50px;" oninput="jump(this.value)">
+        <select id="sSelect" class="q-input" onchange="jump(this.value)">
             <option value="">السورة..</option>
         </select>
     </div>
 </header>
 
-<div class="main-viewer" id="swipeZone">
-    <div class="quran-frame" id="pageBox">
-        <img id="qImg" src="" alt="جاري التحميل...">
+<div class="view-area" id="touchZone">
+    <div class="book-page" id="pageElement">
+        <div class="page-curl"></div>
+        <img id="qImg" src="001.jpg" alt="جاري التحميل...">
     </div>
 </div>
 
-<div class="nav-footer">
-    <button class="nav-btn" onclick="go(1)">التالي</button>
-    <button class="nav-btn" onclick="go(-1)">السابق</button>
-</div>
-
 <script>
-    let p = parseInt(localStorage.getItem('saved_q_p')) || 1;
+    let p = parseInt(localStorage.getItem('saved_p')) || 1;
     let startX = 0;
+    let currentTranslate = 0;
+    let isDragging = false;
 
-    const surahs = [
-        {n:"الفاتحة",p:1},{n:"البقرة",p:2},{n:"آل عمران",p:50},{n:"النساء",p:77},{n:"المائدة",p:106},{n:"الأنعام",p:128},{n:"الأعراف",p:151},{n:"الأنفال",p:177},{n:"التوبة",p:187},{n:"يونس",p:208},{n:"هود",p:221},{n:"يوسف",p:235},{n:"الرعد",p:249},{n:"إبراهيم",p:255},{n:"الحجر",p:262},{n:"النحل",p:267},{n:"الإسراء",p:282},{n:"الكهف",p:293},{n:"مريم",p:305},{n:"طه",p:312},{n:"الأنبياء",p:322},{n:"الحج",p:332},{n:"المؤمنون",p:342},{n:"النور",p:350},{n:"الفرقان",p:359},{n:"الشعراء",p:367},{n:"النمل",p:377},{n:"القصص",p:385},{n:"العنكبوت",p:396},{n:"الروم",p:404},{n:"لقمان",p:411},{n:"السجدة",p:415},{n:"الأحزاب",p:418},{n:"سبأ",p:428},{n:"فاطر",p:434},{n:"يس",p:440},{n:"الصافات",p:446},{n:"ص",p:453},{n:"الزمر",p:458},{n:"غافر",p:467},{n:"فصلت",p:477},{n:"الشورى",p:483},{n:"الزخرف",p:489},{n:"الدخان",p:496},{n:"الجاثية",p:499},{n:"الأحقاف",p:502},{n:"محمد",p:507},{n:"الفتح",p:511},{n:"الحجرات",p:515},{n:"ق",p:518},{n:"الذاريات",p:520},{n:"الطور",p:523},{n:"النجم",p:526},{n:"القمر",p:528},{n:"الرحمن",p:531},{n:"الواقعة",p:534},{n:"الحديد",p:537},{n:"المجادلة",p:542},{n:"الحشر",p:545},{n:"الممتحنة",p:549},{n:"الصف",p:551},{n:"الجمعة",p:553},{n:"المنافقون",p:554},{n:"التغابن",p:556},{n:"الطلاق",p:558},{n:"التحريم",p:560},{n:"الملك",p:562},{n:"القلم",p:564},{n:"الحاقة",p:566},{n:"المعارج",p:568},{n:"نوح",p:570},{n:"الجن",p:572},{n:"المزمل",p:574},{n:"المدثر",p:575},{n:"القيامة",p:577},{n:"الإنسان",p:578},{n:"المرسلات",p:580},{n:"النبأ",p:582},{n:"النازعات",p:583},{n:"عبس",p:585},{n:"التكوير",p:586},{n:"الانفطار",p:587},{n:"المطففين",p:587},{n:"الانشقاق",p:589},{n:"البروج",p:590},{n:"الطارق",p:591},{n:"الأعلى",p:591},{n:"الغاشية",p:592},{n:"الفجر",p:593},{n:"البلد",p:594},{n:"الشمس",p:595},{n:"الليل",p:595},{n:"الضحى",p:596},{n:"الشرح",p:596},{n:"التين",p:597},{n:"العلق",p:597},{n:"القدر",p:598},{n:"البينة",p:598},{n:"الزلزلة",p:599},{n:"العاديات",p:599},{n:"القارعة",p:600},{n:"التكاثر",p:600},{n:"العصر",p:601},{n:"الهمزة",p:601},{n:"الفيل",p:601},{n:"قريش",p:602},{n:"الماعون",p:602},{n:"الكوثر",p:602},{n:"الكافرون",p:603},{n:"النصر",p:603},{n:"المسد",p:603},{n:"الإخلاص",p:604},{n:"الفلق",p:604},{n:"الناس",p:604}
-    ];
+    // فهرس السور (نفس القائمة السابقة)
+    const surahs = [{n:"الفاتحة",p:1},{n:"البقرة",p:2},{n:"آل عمران",p:50},{n:"النساء",p:77},{n:"المائدة",p:106},{n:"الأنعام",p:128},{n:"الأعراف",p:151},{n:"الأنفال",p:177},{n:"التوبة",p:187},{n:"يونس",p:208},{n:"هود",p:221},{n:"يوسف",p:235},{n:"الرعد",p:249},{n:"إبراهيم",p:255},{n:"الحجر",p:262},{n:"النحل",p:267},{n:"الإسراء",p:282},{n:"الكهف",p:293},{n:"مريم",p:305},{n:"طه",p:312},{n:"الأنبياء",p:322},{n:"الحج",p:332},{n:"المؤمنون",p:342},{n:"النور",p:350},{n:"الفرقان",p:359},{n:"الشعراء",p:367},{n:"النمل",p:377},{n:"القصص",p:385},{n:"العنكبوت",p:396},{n:"الروم",p:404},{n:"لقمان",p:411},{n:"السجدة",p:415},{n:"الأحزاب",p:418},{n:"سبأ",p:428},{n:"فاطر",p:434},{n:"يس",p:440},{n:"الصافات",p:446},{n:"ص",p:453},{n:"الزمر",p:458},{n:"غافر",p:467},{n:"فصلت",p:477},{n:"الشورى",p:483},{n:"الزخرف",p:489},{n:"الدخان",p:496},{n:"الجاثية",p:499},{n:"الأحقاف",p:502},{n:"محمد",p:507},{n:"الفتح",p:511},{n:"الحجرات",p:515},{n:"ق",p:518},{n:"الذاريات",p:520},{n:"الطور",p:523},{n:"النجم",p:526},{n:"القمر",p:528},{n:"الرحمن",p:531},{n:"الواقعة",p:534},{n:"الحديد",p:537},{n:"المجادلة",p:542},{n:"الحشر",p:545},{n:"الممتحنة",p:549},{n:"الصف",p:551},{n:"الجمعة",p:553},{n:"المنافقون",p:554},{n:"التغابن",p:556},{n:"الطلاق",p:558},{n:"التحريم",p:560},{n:"الملك",p:562},{n:"القلم",p:564},{n:"الحاقة",p:566},{n:"المعارج",p:568},{n:"نوح",p:570},{n:"الجن",p:572},{n:"المزمل",p:574},{n:"المدثر",p:575},{n:"القيامة",p:577},{n:"الإنسان",p:578},{n:"المرسلات",p:580},{n:"النبأ",p:582},{n:"النازعات",p:583},{n:"عبس",p:585},{n:"التكوير",p:586},{n:"الانفطار",p:587},{n:"المطففين",p:587},{n:"الانشقاق",p:589},{n:"البروج",p:590},{n:"الطارق",p:591},{n:"الأعلى",p:591},{n:"الغاشية",p:592},{n:"الفجر",p:593},{n:"البلد",p:594},{n:"الشمس",p:595},{n:"الليل",p:595},{n:"الضحى",p:596},{n:"الشرح",p:596},{n:"التين",p:597},{n:"العلق",p:597},{n:"القدر",p:598},{n:"البينة",p:598},{n:"الزلزلة",p:599},{n:"العاديات",p:599},{n:"القارعة",p:600},{n:"التكاثر",p:600},{n:"العصر",p:601},{n:"الهمزة",p:601},{n:"الفيل",p:601},{n:"قريش",p:602},{n:"الماعون",p:602},{n:"الكوثر",p:602},{n:"الكافرون",p:603},{n:"النصر",p:603},{n:"المسد",p:603},{n:"الإخلاص",p:604},{n:"الفلق",p:604},{n:"الناس",p:604}];
 
-    function render(dir) {
-        const box = document.getElementById('pageBox');
-        const img = document.getElementById('qImg');
-        
-        box.style.opacity = "0.6";
+    const pageElement = document.getElementById('pageElement');
+    const qImg = document.getElementById('qImg');
 
-        setTimeout(() => {
-            img.src = p.toString().padStart(3, '0') + ".jpg";
-            document.getElementById('pNum').innerText = p;
-            
-            const s = surahs.filter(x => x.p <= p).slice(-1)[0];
-            if(s) document.getElementById('sName').innerText = "سورة " + s.n;
-            
-            localStorage.setItem('saved_q_p', p);
-            box.style.opacity = "1";
-        }, 150);
+    function update() {
+        qImg.src = p.toString().padStart(3, '0') + ".jpg";
+        document.getElementById('pNum').innerText = p;
+        const s = surahs.filter(x => x.p <= p).slice(-1)[0];
+        if(s) document.getElementById('sName').innerText = "سورة " + s.n;
+        localStorage.setItem('saved_p', p);
     }
 
-    function go(s) { if(p+s >= 1 && p+s <= 604) { p+=s; render(s); } }
-    function jumpToPage(val) { if(val >=1 && val <=604) { p = parseInt(val); render(1); } }
+    function jump(val) { if(val >=1 && val <=604) { p = parseInt(val); update(); } }
+
+    // نظام السحب والإفلات (Drag & Flip)
+    pageElement.addEventListener('touchstart', dragStart);
+    pageElement.addEventListener('touchmove', dragMove);
+    pageElement.addEventListener('touchend', dragEnd);
+
+    function dragStart(e) {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+        pageElement.style.transition = 'none';
+    }
+
+    function dragMove(e) {
+        if (!isDragging) return;
+        const currentX = e.touches[0].clientX;
+        const diff = currentX - startX;
+        // تقييد الحركة لليمين واليسار مع إمالة خفيفة
+        pageElement.style.transform = `translateX(${diff}px) rotateY(${diff/20}deg)`;
+    }
+
+    function dragEnd(e) {
+        isDragging = false;
+        const endX = e.changedTouches[0].clientX;
+        const diff = startX - endX;
+
+        pageElement.style.transition = 'transform 0.4s ease';
+
+        if (Math.abs(diff) > 100) { // المسافة المطلوبة لقلب الصفحة
+            if (diff > 0 && p < 604) p++; // سحب لليسار = التالي
+            else if (diff < 0 && p > 1) p--; // سحب لليمين = السابق
+            
+            // تأثير التلاشي السريع عند التغيير
+            pageElement.style.opacity = '0';
+            setTimeout(() => {
+                update();
+                pageElement.style.transform = 'translateX(0) rotateY(0)';
+                pageElement.style.opacity = '1';
+            }, 200);
+        } else {
+            // إعادة الصفحة لمكانها إذا لم يكتمل السحب
+            pageElement.style.transform = 'translateX(0) rotateY(0)';
+        }
+    }
 
     window.onload = () => {
-        const sel = document.getElementById('surahSelect');
+        const sel = document.getElementById('sSelect');
         surahs.forEach(s => {
             let opt = document.createElement('option');
-            opt.value = s.p;
-            opt.text = s.n;
-            sel.add(opt);
+            opt.value = s.p; opt.text = s.n; sel.add(opt);
         });
-        render(0);
+        update();
     };
-
-    const zone = document.getElementById('swipeZone');
-    zone.addEventListener('touchstart', e => { startX = e.touches[0].clientX; });
-    zone.addEventListener('touchend', e => {
-        let diff = startX - e.changedTouches[0].clientX;
-        if (Math.abs(diff) > 50) { if (diff > 0) go(1); else go(-1); }
-    });
 </script>
 
 </body>
