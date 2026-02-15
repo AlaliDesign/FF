@@ -2,32 +2,32 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المصحف الإلكتروني - قراءة مستمرة</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>المصحف الإلكتروني - نسخة الجوال</title>
     <script src="https://unpkg.com/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
     <style>
         :root { --bg: #121212; --nav: #1f1f1f; --gold: #c4a484; --paper: #f4ece0; }
         body { background: var(--bg); margin: 0; display: flex; flex-direction: column; min-height: 100vh; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
 
         .navbar {
-            width: 100%; background: var(--nav); height: 70px; display: flex;
-            justify-content: space-between; align-items: center; padding: 0 15px;
+            width: 100%; background: var(--nav); height: 60px; display: flex;
+            justify-content: space-between; align-items: center; padding: 0 10px;
             box-sizing: border-box; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 1000;
         }
 
         .info-box { display: flex; flex-direction: column; }
-        .surah-label { color: var(--gold); font-size: 18px; font-weight: bold; }
-        .page-label { color: #888; font-size: 13px; }
+        .surah-label { color: var(--gold); font-size: 16px; font-weight: bold; }
+        .page-label { color: #888; font-size: 12px; }
 
-        .controls-nav { display: flex; gap: 10px; align-items: center; }
-        .btn-nav { background: #2c2c2c; color: white; border: 1px solid var(--gold); padding: 8px 15px; border-radius: 5px; cursor: pointer; }
-        .btn-nav:hover { background: var(--gold); color: black; }
+        .controls-nav { display: flex; gap: 8px; align-items: center; }
+        .btn-nav { background: #2c2c2c; color: white; border: 1px solid var(--gold); padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 13px; }
 
-        .viewport { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        /* منطقة العرض: جعلناها مرنة لتناسب طول الجوال */
+        .viewport { flex: 1; display: flex; justify-content: center; align-items: center; padding: 5px; }
         
-        /* حاوية الكتاب المزدوج */
-        #book-container { width: 500px; height: 700px; transition: width 0.3s; }
-        .page { width: 500px; height: 700px; background: var(--paper); display: flex; justify-content: center; align-items: center; }
+        /* حاوية الكتاب: عرض كامل للجوال */
+        #book-container { width: 100vw; height: 85vh; max-width: 500px; }
+        .page { width: 100%; height: 100%; background: var(--paper); display: flex; justify-content: center; align-items: center; }
         .page img { width: 100%; height: 100%; object-fit: contain; }
     </style>
 </head>
@@ -40,12 +40,12 @@
     </div>
 
     <div class="controls-nav">
-        <button class="btn-nav" onclick="pageFlip.flipNext()">الصفحة التالية ←</button>
-        <button class="btn-nav" onclick="pageFlip.flipPrev()">→ الصفحة السابقة</button>
+        <button class="btn-nav" onclick="pageFlip.flipNext()">التالي ←</button>
+        <button class="btn-nav" onclick="pageFlip.flipPrev()">→ السابق</button>
     </div>
 
-    <select id="surah-select" onchange="goToPage(this.value)" style="background: #2c2c2c; color: white; border: 1px solid var(--gold); padding: 5px; border-radius: 5px;">
-        <option value="">الفهرس..</option>
+    <select id="surah-select" onchange="goToPage(this.value)" style="background: #2c2c2c; color: white; border: 1px solid var(--gold); padding: 4px; border-radius: 5px; font-size: 12px;">
+        <option value="">الفهرس</option>
     </select>
 </div>
 
@@ -57,42 +57,42 @@
 
 <script>
     let pageFlip;
-    // قائمة السور (اختصاراً وضعت أهمها ويمكنك إضافة البقية)
     const surahs = [{name:"الفاتحة", p:1}, {name:"البقرة", p:2}, {name:"آل عمران", p:50}, {name:"النساء", p:77}, {name:"المائدة", p:106}, {name:"الأعراف", p:151}];
 
     window.onload = function() {
         const book = document.getElementById('quran-book');
         const select = document.getElementById('surah-select');
         
-        // تعبئة القائمة
         surahs.forEach(s => { select.add(new Option(s.name, s.p)); });
 
-        // إنشاء 605 صفحة
         for (let i = 1; i <= 605; i++) {
             const page = document.createElement('div');
             page.className = 'page';
             const img = document.createElement('img');
             const pNum = i.toString().padStart(3, '0');
-            img.src = pNum + ".jpg";
+            
+            // سيبقى الكود يقرأ من مجلدك المحلي كما فعلت بنجاح
+            img.src = pNum + ".jpg"; 
             img.onerror = function() { this.src = "https://raw.githubusercontent.com/search5/quran-images/master/" + pNum + ".jpg"; };
+            
             page.appendChild(img);
             book.appendChild(page);
         }
 
-        // تشغيل المحرك مع دعم العرض المزدوج التلقائي
+        // الإعدادات السحرية لتحويله إلى صفحة واحدة
         pageFlip = new St.PageFlip(document.getElementById('quran-book'), {
-            width: 500, height: 700,
-            size: "stretch", // يتمدد حسب مساحة الشاشة
-            minWidth: 315, maxWidth: 1000,
-            minHeight: 420, maxHeight: 1350,
-            showCover: true,
-            usePortrait: false, // يسمح بعرض صفحتين بجانب بعض في الشاشات الواسعة
-            drawShadow: true
+            width: 450, 
+            height: 650,
+            size: "stretch", 
+            showCover: false,   // إلغاء الغلاف لضمان البدء بصفحة واحدة
+            usePortrait: true,  // تفعيل الوضع الطولي
+            mode: 'portrait',   // إجبار المكتبة على عرض صفحة واحدة فقط
+            drawShadow: true,
+            mobileScrollSupport: false
         });
 
         pageFlip.loadFromHTML(document.querySelectorAll('.page'));
 
-        // تحديث البيانات عند التقليب
         pageFlip.on('flip', (e) => {
             const p = e.data + 1;
             document.getElementById('cur-page').innerText = p;
