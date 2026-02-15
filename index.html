@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>مصحف التلاوة - التقليب الانسيابي</title>
+    <title>مصحف التلاوة - التقليب الذكي</title>
     <style>
         :root { --gold: #b08d57; --black: #1a1a1a; }
         body { background: #fff; margin: 0; display: flex; flex-direction: column; height: 100vh; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
 
+        /* هيدر احترافي */
         header { 
             background: var(--black); padding: 10px 15px; display: flex; 
             justify-content: space-between; align-items: center; 
-            border-bottom: 2px solid var(--gold); color: var(--gold); height: 60px;
+            border-bottom: 2px solid var(--gold); color: var(--gold); height: 60px; z-index: 100;
         }
-        .q-input { background: #fff; border: 1px solid var(--gold); padding: 6px; border-radius: 5px; outline: none; }
+        .q-input { background: #fff; border: 1px solid var(--gold); padding: 6px; border-radius: 5px; outline: none; width: 60px; }
 
         .view-area { 
             flex: 1; display: flex; justify-content: center; align-items: flex-start; 
@@ -24,23 +25,31 @@
         .page-container {
             width: 95%; max-width: 500px; height: 82vh;
             position: relative; display: flex; justify-content: center; align-items: center;
-            cursor: pointer;
         }
 
         #qImg { 
             max-width: 100%; max-height: 100%; object-fit: contain; 
             display: block; position: absolute;
-            transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s;
+            z-index: 1;
         }
 
-        /* حالة الصفحة الخارجة (القديمة) */
-        .page-exit { transform: translateX(120%) rotate(5deg); opacity: 0; }
+        /* مناطق الضغط المخفية */
+        .click-zone {
+            position: absolute; top: 0; width: 50%; height: 100%; z-index: 10;
+            cursor: pointer;
+        }
+        .zone-next { left: 0; } /* الجهة اليسرى للتقدم */
+        .zone-prev { right: 0; } /* الجهة اليمنى للرجوع */
 
-        /* حالة الصفحة الداخلة (الجديدة) */
-        .page-enter { transform: translateX(-120%); opacity: 0; }
+        /* حركات التقليب */
+        .exit-left { transform: translateX(-120%) rotate(-5deg); opacity: 0; }
+        .exit-right { transform: translateX(120%) rotate(5deg); opacity: 0; }
+        .enter-from-left { transform: translateX(-120%); opacity: 0; }
+        .enter-from-right { transform: translateX(120%); opacity: 0; }
 
         .page-curl { 
-            position: absolute; top: 0; right: 0; width: 35px; height: 35px; 
+            position: absolute; top: 0; right: 0; width: 30px; height: 30px; 
             background: linear-gradient(225deg, #fff 45%, #ddd 50%, #ccc 56%, #f3f3f3 80%); 
             box-shadow: -2px 2px 5px rgba(0,0,0,0.1); border-bottom-left-radius: 5px; z-index: 5;
         }
@@ -51,13 +60,16 @@
 <header>
     <div><b id="sName">سورة الفاتحة</b><br><small id="pNumText">صفحة: 1</small></div>
     <div class="search-tools">
-        <input type="number" id="pSearch" class="q-input" placeholder="رقم.." style="width: 50px;" oninput="jump(this.value)">
-        <select id="sSelect" class="q-input" onchange="jump(this.value)"><option value="">السورة..</option></select>
+        <input type="number" id="pSearch" class="q-input" placeholder="رقم.." oninput="jump(this.value)">
+        <select id="sSelect" class="q-input" style="width: auto;" onchange="jump(this.value)"><option value="">السورة..</option></select>
     </div>
 </header>
 
 <div class="view-area">
-    <div class="page-container" onclick="flipNext()">
+    <div class="page-container">
+        <div class="click-zone zone-prev" onclick="goPrev()" title="الصفحة السابقة"></div>
+        <div class="click-zone zone-next" onclick="goNext()" title="الصفحة التالية"></div>
+        
         <div class="page-curl"></div>
         <img id="qImg" src="001.jpg">
     </div>
@@ -76,23 +88,26 @@
         localStorage.setItem('saved_p', p);
     }
 
-    function flipNext() {
+    function goNext() {
         if (p >= 604) return;
-        const img = document.getElementById('qImg');
-        
-        // 1. خروج الصفحة الحالية لليمين
-        img.classList.add('page-exit');
+        animateFlip('exit-left', 'enter-from-right', 1);
+    }
 
+    function goPrev() {
+        if (p <= 1) return;
+        animateFlip('exit-right', 'enter-from-left', -1);
+    }
+
+    function animateFlip(exitClass, enterClass, step) {
+        const img = document.getElementById('qImg');
+        img.classList.add(exitClass);
         setTimeout(() => {
-            p++;
-            // 2. تغيير الصورة وهي خارج الشاشة
+            p += step;
             updateUI();
-            img.classList.remove('page-exit');
-            img.classList.add('page-enter');
-            
-            // 3. دخول الصفحة الجديدة من اليسار
+            img.classList.remove(exitClass);
+            img.classList.add(enterClass);
             setTimeout(() => {
-                img.classList.remove('page-enter');
+                img.classList.remove(enterClass);
             }, 50);
         }, 300);
     }
