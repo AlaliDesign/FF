@@ -3,56 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>مصحف التلاوة - التقليب الذكي</title>
+    <title>مصحف التلاوة - التقليب الورقي الأصلي</title>
     <style>
         :root { --gold: #b08d57; --black: #1a1a1a; }
         body { background: #fff; margin: 0; display: flex; flex-direction: column; height: 100vh; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
 
-        /* هيدر احترافي */
         header { 
             background: var(--black); padding: 10px 15px; display: flex; 
             justify-content: space-between; align-items: center; 
             border-bottom: 2px solid var(--gold); color: var(--gold); height: 60px; z-index: 100;
         }
-        .q-input { background: #fff; border: 1px solid var(--gold); padding: 6px; border-radius: 5px; outline: none; width: 60px; }
+        .q-input { background: #fff; border: 1px solid var(--gold); padding: 5px; border-radius: 5px; outline: none; width: 60px; }
 
         .view-area { 
             flex: 1; display: flex; justify-content: center; align-items: flex-start; 
-            padding-top: 10px; background: #fff; position: relative; overflow: hidden;
+            padding-top: 10px; perspective: 2000px; /* يعطي عمق ثلاثي الأبعاد */
         }
 
-        /* حاوية الصفحة */
-        .page-container {
+        .page-wrapper {
             width: 95%; max-width: 500px; height: 82vh;
-            position: relative; display: flex; justify-content: center; align-items: center;
+            position: relative; 
+            transform-style: preserve-3d;
         }
 
         #qImg { 
-            max-width: 100%; max-height: 100%; object-fit: contain; 
-            display: block; position: absolute;
-            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s;
-            z-index: 1;
+            width: 100%; height: 100%; object-fit: contain; 
+            background: white;
+            transition: transform 0.7s cubic-bezier(0.645, 0.045, 0.355, 1);
+            transform-origin: right center; /* نقطة الارتكاز هي يمين الصفحة */
+            backface-visibility: hidden;
+            display: block;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
         }
 
-        /* مناطق الضغط المخفية */
-        .click-zone {
+        /* تأثير التقليب الحقيقي (طي الورقة لليمين) */
+        .flip-to-next { 
+            transform: rotateY(180deg); /* تدوير الورقة تماماً */
+        }
+
+        /* تأثير الرجوع (طي الورقة لليسار) */
+        .flip-to-prev { 
+            transform: rotateY(-180deg);
+            transform-origin: left center;
+        }
+
+        /* مناطق الضغط */
+        .touch-zone {
             position: absolute; top: 0; width: 50%; height: 100%; z-index: 10;
-            cursor: pointer;
         }
-        .zone-next { left: 0; } /* الجهة اليسرى للتقدم */
-        .zone-prev { right: 0; } /* الجهة اليمنى للرجوع */
-
-        /* حركات التقليب */
-        .exit-left { transform: translateX(-120%) rotate(-5deg); opacity: 0; }
-        .exit-right { transform: translateX(120%) rotate(5deg); opacity: 0; }
-        .enter-from-left { transform: translateX(-120%); opacity: 0; }
-        .enter-from-right { transform: translateX(120%); opacity: 0; }
-
-        .page-curl { 
-            position: absolute; top: 0; right: 0; width: 30px; height: 30px; 
-            background: linear-gradient(225deg, #fff 45%, #ddd 50%, #ccc 56%, #f3f3f3 80%); 
-            box-shadow: -2px 2px 5px rgba(0,0,0,0.1); border-bottom-left-radius: 5px; z-index: 5;
-        }
+        .next-zone { left: 0; cursor: pointer; } 
+        .prev-zone { right: 0; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -66,17 +66,17 @@
 </header>
 
 <div class="view-area">
-    <div class="page-container">
-        <div class="click-zone zone-prev" onclick="goPrev()" title="الصفحة السابقة"></div>
-        <div class="click-zone zone-next" onclick="goNext()" title="الصفحة التالية"></div>
-        
-        <div class="page-curl"></div>
+    <div class="page-wrapper">
+        <div class="touch-zone next-zone" onclick="pageFlip('next')"></div>
+        <div class="touch-zone prev-zone" onclick="pageFlip('prev')"></div>
         <img id="qImg" src="001.jpg">
     </div>
 </div>
 
 <script>
     let p = parseInt(localStorage.getItem('saved_p')) || 1;
+    
+    // الفهرس الكامل
     const surahs = [{n:"الفاتحة",p:1},{n:"البقرة",p:2},{n:"آل عمران",p:50},{n:"النساء",p:77},{n:"المائدة",p:106},{n:"الأنعام",p:128},{n:"الأعراف",p:151},{n:"الأنفال",p:177},{n:"التوبة",p:187},{n:"يونس",p:208},{n:"هود",p:221},{n:"يوسف",p:235},{n:"الرعد",p:249},{n:"إبراهيم",p:255},{n:"الحجر",p:262},{n:"النحل",p:267},{n:"الإسراء",p:282},{n:"الكهف",p:293},{n:"مريم",p:305},{n:"طه",p:312},{n:"الأنبياء",p:322},{n:"الحج",p:332},{n:"المؤمنون",p:342},{n:"النور",p:350},{n:"الفرقان",p:359},{n:"الشعراء",p:367},{n:"النمل",p:377},{n:"القصص",p:385},{n:"العنكبوت",p:396},{n:"الروم",p:404},{n:"لقمان",p:411},{n:"السجدة",p:415},{n:"الأحزاب",p:418},{n:"سبأ",p:428},{n:"فاطر",p:434},{n:"يس",p:440},{n:"الصافات",p:446},{n:"ص",p:453},{n:"الزمر",p:458},{n:"غافر",p:467},{n:"فصلت",p:477},{n:"الشورى",p:483},{n:"الزخرف",p:489},{n:"الدخان",p:496},{n:"الجاثية",p:499},{n:"الأحقاف",p:502},{n:"محمد",p:507},{n:"الفتح",p:511},{n:"الحجرات",p:515},{n:"ق",p:518},{n:"الذاريات",p:520},{n:"الطور",p:523},{n:"النجم",p:526},{n:"القمر",p:528},{n:"الرحمن",p:531},{n:"الواقعة",p:534},{n:"الحديد",p:537},{n:"المجادلة",p:542},{n:"الحشر",p:545},{n:"الممتحنة",p:549},{n:"الصف",p:551},{n:"الجمعة",p:553},{n:"المنافقون",p:554},{n:"التغابن",p:556},{n:"الطلاق",p:558},{n:"التحريم",p:560},{n:"الملك",p:562},{n:"القلم",p:564},{n:"الحاقة",p:566},{n:"المعارج",p:568},{n:"نوح",p:570},{n:"الجن",p:572},{n:"المزمل",p:574},{n:"المدثر",p:575},{n:"القيامة",p:577},{n:"الإنسان",p:578},{n:"المرسلات",p:580},{n:"النبأ",p:582},{n:"النازعات",p:583},{n:"عبس",p:585},{n:"التكوير",p:586},{n:"الانفطار",p:587},{n:"المطففين",p:587},{n:"الانشقاق",p:589},{n:"البروج",p:590},{n:"الطارق",p:591},{n:"الأعلى",p:591},{n:"الغاشية",p:592},{n:"الفجر",p:593},{n:"البلد",p:594},{n:"الشمس",p:595},{n:"الليل",p:595},{n:"الضحى",p:596},{n:"الشرح",p:596},{n:"التين",p:597},{n:"العلق",p:597},{n:"القدر",p:598},{n:"البينة",p:598},{n:"الزلزلة",p:599},{n:"العاديات",p:599},{n:"القارعة",p:600},{n:"التكاثر",p:600},{n:"العصر",p:601},{n:"الهمزة",p:601},{n:"الفيل",p:601},{n:"قريش",p:602},{n:"الماعون",p:602},{n:"الكوثر",p:602},{n:"الكافرون",p:603},{n:"النصر",p:603},{n:"المسد",p:603},{n:"الإخلاص",p:604},{n:"الفلق",p:604},{n:"الناس",p:604}];
 
     function updateUI() {
@@ -88,28 +88,24 @@
         localStorage.setItem('saved_p', p);
     }
 
-    function goNext() {
-        if (p >= 604) return;
-        animateFlip('exit-left', 'enter-from-right', 1);
-    }
-
-    function goPrev() {
-        if (p <= 1) return;
-        animateFlip('exit-right', 'enter-from-left', -1);
-    }
-
-    function animateFlip(exitClass, enterClass, step) {
+    function pageFlip(dir) {
         const img = document.getElementById('qImg');
-        img.classList.add(exitClass);
-        setTimeout(() => {
-            p += step;
-            updateUI();
-            img.classList.remove(exitClass);
-            img.classList.add(enterClass);
+        
+        if (dir === 'next' && p < 604) {
+            img.style.transform = "rotateY(90deg)"; // طي للنصف
             setTimeout(() => {
-                img.classList.remove(enterClass);
-            }, 50);
-        }, 300);
+                p++;
+                updateUI();
+                img.style.transform = "rotateY(0deg)"; // إعادة الفتح بالصفحة الجديدة
+            }, 350);
+        } else if (dir === 'prev' && p > 1) {
+            img.style.transform = "rotateY(-90deg)"; // طي للجهة الأخرى
+            setTimeout(() => {
+                p--;
+                updateUI();
+                img.style.transform = "rotateY(0deg)";
+            }, 350);
+        }
     }
 
     function jump(val) { if(val >=1 && val <=604) { p = parseInt(val); updateUI(); } }
