@@ -2,96 +2,102 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>مصحف الجوال المطور</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>مصحف الجوال - العرض المنضبط</title>
     <style>
-        :root { --gold: #c4a484; --bg: #000; }
-        body { background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; touch-action: none; }
+        :root { --gold: #c4a484; --bg: #0b0b0b; }
+        body { background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; }
 
-        /* شريط علوي مضغوط جداً لرفع الصفحة */
-        .nav-bar { background: #111; padding: 4px 8px; border-bottom: 1px solid var(--gold); display: flex; align-items: center; justify-content: space-between; height: 45px; z-index: 10; }
-        .info { font-size: 12px; line-height: 1.2; }
-        .info b { color: var(--gold); display: block; }
+        /* الهيدر: شريط نحيف جداً */
+        .nav-header { background: #1a1a1a; padding: 5px 10px; border-bottom: 1px solid var(--gold); display: flex; justify-content: space-between; align-items: center; height: 40px; flex-shrink: 0; }
+        .info { font-size: 12px; color: var(--gold); }
         
-        .controls { display: flex; gap: 4px; }
-        .in-field { width: 60px; background: #222; border: 1px solid #444; color: white; border-radius: 3px; padding: 3px; font-size: 11px; }
-        .btn { background: var(--gold); border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; color: black; }
+        .controls { display: flex; gap: 5px; }
+        .s-input { width: 60px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; padding: 3px; font-size: 10px; }
+        .btn { background: var(--gold); border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; color: black; }
 
-        /* منطقة القراءة تملأ باقي الشاشة */
-        .quran-container { flex: 1; position: relative; display: flex; justify-content: center; align-items: flex-start; background: #000; padding-top: 5px; }
-        #qPage { width: 100%; height: auto; max-height: 95%; object-fit: contain; }
+        /* منطقة القراءة: السر هنا في منع التمدد */
+        .viewer { 
+            flex: 1; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; /* يضع الصفحة في المنتصف تماماً */
+            background: #000; 
+            overflow: hidden; 
+            padding: 10px;
+        }
+
+        #qPage { 
+            max-width: 100%; 
+            max-height: 100%; 
+            width: auto;  /* يمنع التمدد العرضي الإجباري */
+            height: auto; /* يحافظ على التناسب */
+            object-fit: contain; /* يضمن عدم خروج الصورة عن الإطار */
+            box-shadow: 0 0 15px rgba(255,255,255,0.05);
+            display: block;
+        }
     </style>
 </head>
 <body>
 
-<div class="nav-bar">
+<div class="nav-header">
     <div class="info">
-        <b id="sName">سورة الفاتحة</b>
-        <span>صفحة: <span id="pNum">1</span></span>
+        <b id="sName">سورة الفاتحة</b> | صـ <span id="pNum">1</span>
     </div>
     <div class="controls">
-        <input type="text" class="in-field" id="search" placeholder="بحث.." oninput="filter(this.value)">
-        <select id="list" class="in-field" style="width: 75px;" onchange="goTo(this.value)"></select>
-        <button class="btn" onclick="prev()">السابق</button>
-        <button class="btn" onclick="next()">التالي</button>
+        <input type="text" class="s-input" id="srch" placeholder="بحث.." oninput="filterSurahs(this.value)">
+        <select id="sList" class="s-input" style="width: 70px;" onchange="jumpTo(this.value)"></select>
+        <button class="btn" onclick="goPrev()">السابق</button>
+        <button class="btn" onclick="goNext()">التالي</button>
     </div>
 </div>
 
-<div class="quran-container" id="touchArea">
+<div class="viewer" id="touchArea">
     <img id="qPage" src="001.jpg" onerror="this.src='https://raw.githubusercontent.com/search5/quran-images/master/001.jpg'">
 </div>
 
 <script>
-    let current = 1;
-    let startX = 0;
-    const surahs = [
+    let p = 1;
+    let xDown = null;
+
+    const data = [
         {n: "الفاتحة", p: 1}, {n: "البقرة", p: 2}, {n: "آل عمران", p: 50}, {n: "النساء", p: 77}, {n: "المائدة", p: 106},
-        {n: "الأنعام", p: 128}, {n: "الأعراف", p: 151}, {n: "الأنفال", p: 177}, {n: "التوبة", p: 187} /* ... بقية السور ... */
+        {n: "الأنعام", p: 128}, {n: "الأعراف", p: 151}, {n: "الأنفال", p: 177}, {n: "التوبة", p: 187}
+        // ... يمكنك إضافة باقي السور هنا
     ];
 
-    function update() {
+    function draw() {
         const img = document.getElementById('qPage');
-        const num = current.toString().padStart(3, '0');
+        const num = p.toString().padStart(3, '0');
         img.src = `${num}.jpg`;
-        document.getElementById('pNum').innerText = current;
-        // تحديث اسم السورة (بناءً على قائمة السور الكاملة لديك)
-        const s = surahs.filter(x => x.p <= current).slice(-1)[0];
+        document.getElementById('pNum').innerText = p;
+        const s = data.filter(x => x.p <= p).slice(-1)[0];
         if(s) document.getElementById('sName').innerText = "سورة " + s.n;
     }
 
-    function next() { if(current < 604) { current++; update(); } }
-    function prev() { if(current > 1) { current--; update(); } }
-    function goTo(p) { if(p) { current = parseInt(p); update(); } }
+    function goNext() { if(p < 604) { p++; draw(); } }
+    function goPrev() { if(p > 1) { p--; draw(); } }
+    function jumpTo(val) { if(val) { p = parseInt(val); draw(); } }
 
-    // إضافة دعم السحب (Swipe) باللمس
-    const touchArea = document.getElementById('touchArea');
-    
-    touchArea.addEventListener('touchstart', e => {
-        startX = e.touches[0].clientX;
-    }, false);
-
-    touchArea.addEventListener('touchend', e => {
-        let endX = e.changedTouches[0].clientX;
-        let diff = startX - endX;
-
-        if (Math.abs(diff) > 50) { // حساسية السحب
-            if (diff > 0) {
-                next(); // سحب لليسار يقلب للتالي
-            } else {
-                prev(); // سحب لليمين يقلب للسابق
-            }
+    // دعم السحب للتقليب (Swipe)
+    const tArea = document.getElementById('touchArea');
+    tArea.addEventListener('touchstart', e => { xDown = e.touches[0].clientX; });
+    tArea.addEventListener('touchend', e => {
+        if (!xDown) return;
+        let xDiff = xDown - e.changedTouches[0].clientX;
+        if (Math.abs(xDiff) > 50) {
+            if (xDiff > 0) goNext(); else goPrev();
         }
-    }, false);
+        xDown = null;
+    });
 
-    function filter(v) {
-        const list = document.getElementById('list');
-        list.innerHTML = '<option value="">الفهرس..</option>';
-        surahs.filter(s => s.n.includes(v)).forEach(s => {
-            list.add(new Option(s.n, s.p));
-        });
+    function filterSurahs(v) {
+        const l = document.getElementById('sList');
+        l.innerHTML = '<option value="">الفهرس..</option>';
+        data.filter(s => s.n.includes(v)).forEach(s => l.add(new Option(s.n, s.p)));
     }
 
-    window.onload = () => { filter(''); };
+    window.onload = () => { filterSurahs(''); };
 </script>
 </body>
 </html>
